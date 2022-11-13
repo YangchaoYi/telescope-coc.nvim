@@ -249,6 +249,27 @@ local function list_or_jump(opts)
     return
   end
 
+  local displayer = entry_display.create({
+    separator = '▏',
+    items = {
+      { width = 8 },
+      -- { width = 40 },
+      -- { remaining = true },
+      { remaining = true },
+    },
+  })
+
+  local make_display = function(entry)
+    local line_info = { table.concat({ entry.lnum, entry.col }, ':'), 'TelescopeResultsLineNr' }
+    local filename = utils.transform_path(opts, entry.filename)
+
+    return displayer({
+      line_info,
+      filename,
+      -- entry.text:gsub('.* | ', ''),
+    })
+  end
+
   if vim.tbl_isempty(defs) then
     print(('No %s found'):format(opts.coc_action))
   elseif #defs == 1 and not config.prefer_locations then
@@ -262,9 +283,27 @@ local function list_or_jump(opts)
       prompt_title = opts.coc_title,
       previewer = conf.qflist_previewer(opts),
       sorter = conf.generic_sorter(opts),
+      push_cursor_on_edit = true,
+      -- finder = finders.new_table({
+      --   results = results,
+      --   entry_maker = opts.entry_maker or make_entry.gen_from_quickfix(opts),
+      -- }),
       finder = finders.new_table({
         results = results,
-        entry_maker = opts.entry_maker or make_entry.gen_from_quickfix(opts),
+        entry_maker = function(entry)
+          return {
+            valid = true,
+
+            value = entry,
+            ordinal = (not opts.ignore_filename and entry.filename or '') .. ' ' .. entry.text,
+            display = make_display,
+
+            filename = entry.filename,
+            lnum = entry.lnum,
+            col = entry.col,
+            text = entry.text,
+          }
+        end,
       }),
     }):find()
   end
@@ -320,8 +359,9 @@ local references = function(opts)
   local displayer = entry_display.create({
     separator = '▏',
     items = {
-      { width = 6 },
-      { width = 40 },
+      { width = 8 },
+      -- { width = 40 },
+      -- { remaining = true },
       { remaining = true },
     },
   })
@@ -333,7 +373,7 @@ local references = function(opts)
     return displayer({
       line_info,
       filename,
-      entry.text:gsub('.* | ', ''),
+      -- entry.text:gsub('.* | ', ''),
     })
   end
 
@@ -341,6 +381,7 @@ local references = function(opts)
     prompt_title = 'Coc References',
     previewer = conf.qflist_previewer(opts),
     sorter = conf.generic_sorter(opts),
+    push_cursor_on_edit = true,
     finder = finders.new_table({
       results = results,
       entry_maker = function(entry)
